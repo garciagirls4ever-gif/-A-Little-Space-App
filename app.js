@@ -1,26 +1,86 @@
-const K="als-data";let d=JSON.parse(localStorage.getItem(K)||'{"journal":[],"memory":[],"checkins":[]}');const app=document.getElementById("app");
-const save=()=>localStorage.setItem(K,JSON.stringify(d));
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const KEY="a-little-space-account-v2";
+let account=JSON.parse(localStorage.getItem(KEY)||"null");
+let data=account?.data||{journal:[],memory:[],checkins:[],songs:[]};
+const app=document.getElementById("app"),header=document.getElementById("header"),navEl=document.getElementById("nav");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const save=()=>{if(account){account.data=data;localStorage.setItem(KEY,JSON.stringify(account))}};
+const safeUrl=u=>/^https?:\/\/(music\.apple\.com|itunes\.apple\.com)\//i.test(u||"")?u:"";
+function showApp(){header.hidden=false;navEl.hidden=false}
 function nav(p){document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===p))}
-function home(){nav("home");app.innerHTML=`
-<section><div class="eyebrow">A gentle place to pause</div>
-<h1>You do not have to have it all figured out.</h1>
-<p>Take a little space. Notice what is here. Then choose what you need.</p>
-<button class="card" id="check"><b>💛 How are you feeling?</b><p>Start a gentle check-in without having to explain everything.</p></button>
-<div class="grid">
-<button class="choice" id="j"><span>✍️</span><b>Journal</b><p>Put some thoughts somewhere safe.</p></button>
-<button class="choice" id="m"><span>🕯️</span><b>Memory Box</b><p>Keep words and memories close.</p></button>
-<button class="choice" id="t"><span>🌿</span><b>Coping Toolkit</b><p>Small grounding and reset tools.</p></button>
-<button class="choice" id="p"><span>📖</span><b>My Patterns</b><p>Look back at your check-ins.</p></button>
-</div><div class="card"><b>You are allowed to take up a little space for yourself.</b><p>There is no right way to feel.</p></div></section>`;
-document.getElementById("check").onclick=checkin;document.getElementById("j").onclick=journal;document.getElementById("m").onclick=memory;document.getElementById("t").onclick=toolkit;document.getElementById("p").onclick=patterns}
-function checkin(){nav("");app.innerHTML='<div class="eyebrow">Feeling Explorer</div><h1>What is here right now?</h1><p>Choose what fits. There is no wrong answer.</p><div class="feelings">'+["😔 Low","😰 Anxious","😤 Frustrated","😴 Exhausted","🥺 Overwhelmed","🫶 Tender","😌 Calmer","🙂 Okay"].map(x=>'<button class="choice feel">'+x+'</button>').join("")+'</div>';
-document.querySelectorAll(".feel").forEach(b=>b.onclick=()=>{let f=b.textContent.trim();d.checkins.unshift({feeling:f,at:new Date().toISOString()});save();app.innerHTML='<div class="card"><h2>You are feeling '+esc(f)+'.</h2><p>You do not have to solve it. Would you like to explore it or settle your body first?</p><div class="actions"><button class="primary" id="r">Explore it</button><button class="secondary" id="t">Help me settle</button></div></div>';document.getElementById("r").onclick=reflection;document.getElementById("t").onclick=toolkit})}
-function reflection(){nav("");app.innerHTML='<div class="eyebrow">Reflection</div><h1>A little more space</h1><p>Just notice. You do not have to fix everything.</p><div class="card"><b>What might have brought this feeling up?</b><textarea id="why" placeholder="A person, thought, memory, situation, or maybe you do not know..."></textarea><b>What do you need most right now?</b><input id="need" placeholder="Rest, reassurance, space, connection, comfort..."><div class="actions"><button class="primary" id="save">Save reflection</button><button class="secondary" id="tool">Coping Toolkit</button></div></div>';
-document.getElementById("save").onclick=()=>{let a=document.getElementById("why").value.trim(),b=document.getElementById("need").value.trim();if(a||b){d.journal.unshift({title:"Reflection",text:[a&&"What brought this up: "+a,b&&"What I need: "+b].filter(Boolean).join("\n\n"),at:new Date().toISOString()});save()}journal()};
-document.getElementById("tool").onclick=toolkit}
-function toolkit(){nav("");app.innerHTML='<div class="eyebrow">Coping Toolkit</div><h1>Make this moment a little easier.</h1><div class="tool"><b>🌬️ Slow breathing</b><p>Try a slow breath in and a longer breath out for a few rounds. Stop if it makes you uncomfortable.</p></div><div class="tool"><b>5–4–3–2–1 grounding</b><p>Name 5 things you can see, 4 you can touch, 3 you can hear, 2 you can smell and 1 you can taste.</p></div><div class="tool"><b>One small thing</b><p>Unclench your jaw. Drop your shoulders. Take a sip of water. Open a window. Choose just one.</p></div><button class="secondary" id="back">Back home</button>';document.getElementById("back").onclick=home}
-function journal(){nav("journal");app.innerHTML='<div class="eyebrow">Journal</div><h1>Your space to write.</h1><p>Entries are stored locally on this device in this version.</p><div class="card"><textarea id="jt" placeholder="Write whatever needs somewhere to go..."></textarea><div class="actions"><button class="primary" id="add">Save entry</button></div></div>'+(d.journal.length?d.journal.map(e=>'<article class="entry"><b>'+esc(e.title||"Journal entry")+'</b><p>'+esc(e.text).replace(/\n/g,"<br>")+'</p><small>'+new Date(e.at).toLocaleString()+'</small></article>').join(""):'<div class="empty">Nothing saved yet. Your first entry can be tiny.</div>');document.getElementById("add").onclick=()=>{let t=document.getElementById("jt").value.trim();if(t){d.journal.unshift({title:"Journal entry",text:t,at:new Date().toISOString()});save();journal()}}}
-function memory(){nav("memory");app.innerHTML='<div class="eyebrow">Memory Box</div><h1>Keep what matters close.</h1><p>Save a memory, message or little moment.</p><div class="card"><input id="mt" placeholder="Memory title"><textarea id="mx" placeholder="Write it down..."></textarea><div class="actions"><button class="primary" id="addm">Keep this memory</button></div></div>'+(d.memory.length?d.memory.map(e=>'<article class="entry"><b>🕯️ '+esc(e.title)+'</b><p>'+esc(e.text).replace(/\n/g,"<br>")+'</p><small>'+new Date(e.at).toLocaleDateString()+'</small></article>').join(""):'<div class="empty">Your Memory Box is empty. That is okay.</div>');document.getElementById("addm").onclick=()=>{let t=document.getElementById("mt").value.trim(),x=document.getElementById("mx").value.trim();if(t||x){d.memory.unshift({title:t,text:x,at:new Date().toISOString()});save();memory()}}}
-function patterns(){nav("patterns");let c={};d.checkins.forEach(x=>c[x.feeling]=(c[x.feeling]||0)+1);app.innerHTML='<div class="eyebrow">My Patterns</div><h1>Notice, do not judge.</h1><p>This is simply a record of what you chose to check in about. It is not a diagnosis.</p><div class="card">'+(Object.entries(c).length?Object.entries(c).map(x=>'<div class="tool"><b>'+esc(x[0])+'</b><p>'+x[1]+' check-in'+(x[1]===1?"":"s")+'</p></div>').join(""):'<div class="empty">Your patterns will appear here as you use the check-in.</div>')+'</div>'}
-document.getElementById("home").onclick=home;document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>({home,journal,memory,patterns}[b.dataset.page])());home();
+function auth(){
+ header.hidden=true;navEl.hidden=true;
+ app.innerHTML=`<section class="login">
+  <div class="login-logo">✦</div><div class="eyebrow">A private little space</div>
+  <h1>A Little Space</h1>
+  <p>Your memories, reflections and songs should have a place that belongs to you.</p>
+  <div class="card">
+   <h2 id="authTitle">Create your account</h2>
+   <p class="small" id="authIntro">This starter version keeps your account on this device. For a genuinely secure public account system, connect a proper authentication and database service before launch.</p>
+   <input id="email" type="email" autocomplete="email" placeholder="Email address">
+   <input id="pass" type="password" autocomplete="new-password" placeholder="Password" style="margin-top:9px">
+   <div id="nameWrap"><input id="name" autocomplete="name" placeholder="Your name" style="margin-top:9px"></div>
+   <div class="actions"><button class="primary" id="authBtn">Create account</button></div>
+   <div id="err" class="error"></div>
+   <p class="small center"><button class="linkbtn" id="toggle">Already have an account? Sign in</button></p>
+  </div>
+ </section>`;
+ let signup=true;
+ const title=document.getElementById("authTitle"),btn=document.getElementById("authBtn"),toggle=document.getElementById("toggle"),nameWrap=document.getElementById("nameWrap");
+ toggle.onclick=()=>{
+   signup=!signup;
+   title.textContent=signup?"Create your account":"Welcome back";
+   btn.textContent=signup?"Create account":"Sign in";
+   nameWrap.hidden=!signup;
+   toggle.textContent=signup?"Already have an account? Sign in":"Need an account? Create one";
+ };
+ btn.onclick=()=>{
+   const email=document.getElementById("email").value.trim().toLowerCase();
+   const pass=document.getElementById("pass").value;
+   const name=(document.getElementById("name")?.value||"").trim();
+   const err=document.getElementById("err");
+   if(!email||!pass||(signup&&!name)){err.textContent="Please fill in all required fields.";return}
+   if(signup){
+     if(pass.length<8){err.textContent="Use at least 8 characters for your password.";return}
+     account={email,name,data:{journal:[],memory:[],checkins:[],songs:[]}};
+     data=account.data;save();home();
+   }else{
+     if(!account||account.email!==email){err.textContent="No account found on this device.";return}
+     data=account.data||{journal:[],memory:[],checkins:[],songs:[]};home();
+   }
+ };
+}
+function home(){
+ showApp();nav("home");
+ app.innerHTML=`<div class="angel" aria-hidden="true"><svg viewBox="0 0 220 110">
+ <defs><linearGradient id="featherFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffdfb"/><stop offset=".55" stop-color="#f3ebe6"/><stop offset="1" stop-color="#dfd0c8"/></linearGradient></defs>
+ <g class="wl"><path class="w" d="M108 58C88 32 60 15 20 13c15 13 25 27 32 42 10-7 22-7 35 0-24 3-43 11-57 25 23-3 44-7 63-2-18 8-30 16-37 23 24-5 43-16 52-31Z"/></g>
+ <g class="wr"><path class="w" d="M112 58C132 32 160 15 200 13c-15 13-25 27-32 42-10-7-22-7-35 0 24 3 43 11 57 25-23-3-44-7-63-2 18 8 30 16 37 23-24-5-43-16-52-31Z"/></g>
+ </svg></div>
+ <div class="eyebrow">A gentle place to pause</div>
+ <h1>You do not have to have it all figured out.</h1>
+ <p>Take a little space. Notice what is here. Then choose what you need.</p>
+ <button class="card" onclick="checkin()"><b>💛 How are you feeling?</b><p>Start a gentle check-in without having to explain everything.</p></button>
+ <div class="grid">
+  <button class="choice" onclick="journal()"><span>✍️</span><b>Journal</b><p>Put some thoughts somewhere safe.</p></button>
+  <button class="choice" onclick="memory()"><span>🕯️</span><b>Memory Box</b><p>Keep words and memories close.</p></button>
+  <button class="choice" onclick="toolkit()"><span>🌿</span><b>Coping Toolkit</b><p>Small grounding and reset tools.</p></button>
+  <button class="choice" onclick="patterns()"><span>📖</span><b>My Patterns</b><p>Look back at your check-ins.</p></button>
+ </div>
+ <div class="card song-card"><b>🎵 Listen to a loved one's song</b><p>Save their song here so you can open it and listen whenever you want.</p><button class="primary" onclick="songs()">🎵 Add a song & listen</button></div>
+ <div class="card"><b>You are allowed to take up a little space for yourself.</b><p>There is no right way to feel.</p></div>`;
+}
+function checkin(){nav("");app.innerHTML='<div class="eyebrow">Feeling Explorer</div><h1>What is here right now?</h1><p>Choose what fits. There is no wrong answer.</p><div class="grid">'+["😔 Low","😰 Anxious","😤 Frustrated","😴 Exhausted","🥺 Overwhelmed","🫶 Tender","😌 Calmer","🙂 Okay"].map(f=>`<button class="choice" onclick="picked(${JSON.stringify(f)})">${f}</button>`).join("")+"</div>"}
+function picked(f){data.checkins.unshift({feeling:f,at:new Date().toISOString()});save();app.innerHTML=`<div class="card"><h2>You are feeling ${esc(f)}.</h2><p>You do not have to solve it. Would you like to explore it or settle your body first?</p><div class="actions"><button class="primary" onclick="reflection()">Explore it</button><button class="secondary" onclick="toolkit()">Help me settle</button></div></div>`}
+function reflection(){app.innerHTML='<div class="eyebrow">Reflection</div><h1>A little more space</h1><p>Just notice. You do not have to fix everything.</p><div class="card"><b>What might have brought this feeling up?</b><textarea id="why" placeholder="A person, thought, memory, situation, or maybe you do not know..."></textarea><b>What do you need most right now?</b><input id="need" placeholder="Rest, reassurance, space, connection, comfort..." style="margin-top:9px"><div class="actions"><button class="primary" onclick="saveReflection()">Save reflection</button><button class="secondary" onclick="toolkit()">Coping Toolkit</button></div></div>'}
+function saveReflection(){const a=document.getElementById("why").value.trim(),b=document.getElementById("need").value.trim();if(a||b){data.journal.unshift({title:"Reflection",text:[a&&"What brought this up: "+a,b&&"What I need: "+b].filter(Boolean).join("\n\n"),at:new Date().toISOString()});save()}journal()}
+function toolkit(){app.innerHTML='<div class="eyebrow">Coping Toolkit</div><h1>Make this moment a little easier.</h1><div class="card breath"><div class="breathcircle">Breathe<br>slowly</div><p>Let the circle guide you. Breathe in as it grows and out as it settles.</p></div><div class="tool"><b>🌬️ Slow breathing</b><p>Try a slow breath in and a longer breath out for a few rounds. Stop if it makes you uncomfortable.</p></div><div class="tool"><b>5–4–3–2–1 grounding</b><p>Name 5 things you can see, 4 you can touch, 3 you can hear, 2 you can smell and 1 you can taste.</p></div><div class="tool"><b>One small thing</b><p>Unclench your jaw. Drop your shoulders. Take a sip of water. Open a window. Choose just one.</p></div><button class="secondary" onclick="home()">Back home</button>'}
+function journal(){nav("journal");app.innerHTML='<div class="eyebrow">Journal</div><h1>Your space to write.</h1><p>In this starter version, entries stay on this device.</p><div class="card"><textarea id="jt" placeholder="Write whatever needs somewhere to go..."></textarea><div class="actions"><button class="primary" onclick="addJournal()">Save entry</button></div></div>'+(data.journal.length?data.journal.map(e=>`<article class="entry"><b>${esc(e.title||"Journal entry")}</b><p>${esc(e.text).replace(/\n/g,"<br>")}</p><small>${new Date(e.at).toLocaleString()}</small></article>`).join(""):'<div class="empty">Nothing saved yet. Your first entry can be tiny.</div>')}
+function addJournal(){const t=document.getElementById("jt").value.trim();if(t){data.journal.unshift({title:"Journal entry",text:t,at:new Date().toISOString()});save();journal()}}
+function memory(){nav("memory");app.innerHTML='<div class="eyebrow">Memory Box</div><h1>Keep what matters close.</h1><p>Save a memory, message or little moment.</p><div class="card"><input id="mt" placeholder="Memory title"><textarea id="mx" placeholder="Write it down..." style="margin-top:9px"></textarea><div class="actions"><button class="primary" onclick="addMemory()">Keep this memory</button></div></div>'+(data.memory.length?data.memory.map(e=>`<article class="entry"><b>🕯️ ${esc(e.title)}</b><p>${esc(e.text).replace(/\n/g,"<br>")}</p><small>${new Date(e.at).toLocaleDateString()}</small></article>`).join(""):'<div class="empty">Your Memory Box is empty. That is okay.</div>')}
+function addMemory(){const t=document.getElementById("mt").value.trim(),x=document.getElementById("mx").value.trim();if(t||x){data.memory.unshift({title:t,text:x,at:new Date().toISOString()});save();memory()}}
+function songs(){app.innerHTML='<div class="eyebrow">A song to remember</div><h1>Keep their song close. 🎵</h1><p>Save a song that reminds you of someone you love.</p><div class="card"><b>1. Find the song</b><p>Open Apple Music, find the song, tap share and choose Copy Link.</p><a class="primary" href="https://music.apple.com/" target="_blank" rel="noopener">Open Apple Music</a></div><div class="card"><b>2. Add it here</b><input id="st" placeholder="Song title"><input id="sa" placeholder="Artist (optional)" style="margin-top:9px"><input id="su" placeholder="Paste the Apple Music / iTunes link here" style="margin-top:9px"><textarea id="sn" placeholder="A little note about why this song matters (optional)" style="margin-top:9px"></textarea><div class="actions"><button class="primary" onclick="addSong()">💛 Save my song</button></div></div>'+(data.songs.length?'<div class="eyebrow">Your saved songs</div>'+data.songs.map(e=>{const u=safeUrl(e.url);return `<article class="entry song-card"><div class="song-row"><div class="song-icon">🎵</div><div><b>${esc(e.title||"A loved one's song")}</b><div>${esc(e.artist||"")}</div></div></div>${e.note?`<p>${esc(e.note)}</p>`:""}${u?`<a class="primary" href="${esc(u)}" target="_blank" rel="noopener" style="margin-top:8px">▶ Listen to the song</a>`:"<p>Song link not added yet.</p>"}</article>`}).join(""):'<div class="empty">Your saved songs will appear here.</div>')+'<button class="secondary" onclick="home()">Back home</button>'}
+function addSong(){const t=document.getElementById("st").value.trim(),a=document.getElementById("sa").value.trim(),u=document.getElementById("su").value.trim(),n=document.getElementById("sn").value.trim();if(t||u){data.songs.unshift({title:t,artist:a,url:safeUrl(u),note:n,at:new Date().toISOString()});save();songs()}}
+function patterns(){nav("patterns");const c={};data.checkins.forEach(x=>c[x.feeling]=(c[x.feeling]||0)+1);app.innerHTML='<div class="eyebrow">My Patterns</div><h1>Notice, do not judge.</h1><p>This is simply a record of what you chose to check in about. It is not a diagnosis.</p><div class="card">'+(Object.entries(c).length?Object.entries(c).map(x=>`<div class="tool"><b>${esc(x[0])}</b><p>${x[1]} check-in${x[1]===1?"":"s"}</p></div>`).join(""):'<div class="empty">Your patterns will appear here as you use the check-in.</div>')+'</div>'}
+function logout(){if(confirm("Sign out of A Little Space?")){account=null;data={journal:[],memory:[],checkins:[],songs:[]};auth()}}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>({home,journal,memory,patterns}[b.dataset.page])());
+account?home():auth();
